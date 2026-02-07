@@ -5,12 +5,21 @@ import { useAuth } from "../auth/AuthProvider";
 import { Navigate } from "react-router-dom";
 
 export default function Login(){
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const [email,setEmail]=useState("");
   const [pass,setPass]=useState("");
   const [msg,setMsg]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
-  if(user) return <Navigate to="/" replace/>;
+
+  // ✅ IMPORTANT: user load হওয়া পর্যন্ত redirect করো না
+  if (!loading && user) {
+    const to =
+      user.role === "ADMIN" ? "/admin/approvals" :
+      user.role === "STAFF" ? "/staff/entry" :
+      "/"; // VIEWER fallback
+    return <Navigate to={to} replace />;
+  }
+
   return (
     <div style={{maxWidth:420,margin:"40px auto",padding:16,border:"1px solid #eee",borderRadius:10}}>
       <h2>Login</h2>
