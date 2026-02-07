@@ -27,3 +27,21 @@ export function AuthProvider({ children }:{children:React.ReactNode}){
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 export function useAuth(){ const v=useContext(Ctx); if(!v) throw new Error("useAuth outside provider"); return v; }
+useEffect(() => onAuthStateChanged(auth, async (u) => {
+  setFbUser(u);
+  if (!u) { setUser(null); setLoading(false); return; }
+
+  try {
+    console.log("SIGNED IN:", u.uid, u.email);
+    const rec = await rtdbGet<any>(`users/${u.uid}`);
+    console.log("USER REC:", rec);
+
+    if (!rec || rec.active === false || !rec.role) setUser(null);
+    else setUser({ uid: u.uid, email: u.email, role: rec.role, name: rec.name, active: rec.active });
+  } catch (e) {
+    console.error("RTDB READ FAILED:", e);
+    setUser(null);
+  } finally {
+    setLoading(false);
+  }
+}), []);
