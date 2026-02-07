@@ -6,26 +6,15 @@ import StaffEntry from "./pages/StaffEntry";
 import AdminApprovals from "./pages/AdminApprovals";
 import NotFound from "./pages/NotFound";
 
-/** ✅ Redirect "/" based on role */
-function HomeRedirect() {
-  const { loading, user } = useAuth();
-  if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
-  if (!user) return <Navigate to="/login" replace />;
+/* ---------- Guards ---------- */
 
-  if (user.role === "ADMIN") return <Navigate to="/admin/approvals" replace />;
-  if (user.role === "STAFF") return <Navigate to="/staff/entry" replace />;
-  return <div style={{ padding: 16 }}>No access</div>;
-}
-
-/** ✅ Require login */
 function RequireAuth({ children }: { children: JSX.Element }) {
-  const { loading, user } = useAuth();
-  if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
+  const { user, loading } = useAuth();
+  if (loading) return <div>Loading...</div>;
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
 
-/** ✅ Require role */
 function RequireRole({
   role,
   children,
@@ -33,51 +22,67 @@ function RequireRole({
   role: "ADMIN" | "STAFF";
   children: JSX.Element;
 }) {
-  const { loading, user } = useAuth();
-  if (loading) return <div style={{ padding: 16 }}>Loading...</div>;
+  const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== role) {
-    // wrong role -> go home redirect
-    return <Navigate to="/" replace />;
-  }
+  if (user.role !== role) return <Navigate to="/" replace />;
   return children;
 }
 
+function HomeRedirect() {
+  const { user, loading } = useAuth();
+  if (loading) return <div>Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+
+  return user.role === "ADMIN" ? (
+    <Navigate to="/admin/approvals" replace />
+  ) : user.role === "STAFF" ? (
+    <Navigate to="/staff/entry" replace />
+  ) : (
+    <Navigate to="/login" replace />
+  );
+}
+
+/* ---------- App ---------- */
+
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
-          {/* public */}
+          {/* Public */}
           <Route path="/login" element={<Login />} />
 
-          {/* "/" decides where to go */}
+          {/* Root redirect */}
           <Route path="/" element={<HomeRedirect />} />
 
-          {/* staff routes */}
+          {/* STAFF */}
           <Route
             path="/staff/entry"
             element={
-              <RequireRole role="STAFF">
-                <StaffEntry />
-              </RequireRole>
+              <RequireAuth>
+                <RequireRole role="STAFF">
+                  <StaffEntry />
+                </RequireRole>
+              </RequireAuth>
             }
           />
 
-          {/* admin routes */}
+          {/* ADMIN */}
           <Route
             path="/admin/approvals"
             element={
-              <RequireRole role="ADMIN">
-                <AdminApprovals />
-              </RequireRole>
+              <RequireAuth>
+                <RequireRole role="ADMIN">
+                  <AdminApprovals />
+                </RequireRole>
+              </RequireAuth>
             }
           />
 
-          {/* catch all */}
+          {/* Fallback */}
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
